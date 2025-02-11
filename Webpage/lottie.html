@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie Sticker Viewer</title>
+    <script src="./script/sidebar.js" defer></script> <!-- Importing the custom sidebar script -->
+    <!-- Importing lottie-web library -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.3/lottie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script> -->
+    <script src="./script/lottie/lottie.min.js"></script>
+    <script src="./script/lottie/gif.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            /* Set the body as a flex container */
+            margin: 0;
+            padding: 0;
+            background-color: #23272A;
+            color: #FFFFFF;
+            align-items: flex-start;  /* Align the content to the top of the container */
+            margin-top: 10px;  /* Add a small margin from the top */
+        }
+
+        /* Flex container that holds both sidebar and main content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            /* Make the main content take the remaining space */
+            flex-direction: column;
+            padding: 20px;
+            text-align: center;
+            
+        }
+
+        /* Ensure that the container has a maximum width and centered content */
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 20px;
+            background: #2C2F33;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            margin: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #7289DA;
+            background: #7289DA;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #5d6e8c;
+        }
+
+        .sticker-container {
+            width: 300px;
+            height: 300px;
+            background: #36393F;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #7289DA;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+
+        .format-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .sticker-half,
+        .button-half {
+            flex: 1;
+            display: flex;
+            gap: 10px;  /* Add some space between buttons */
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            /* Stack buttons next to eachother vertically */
+            
+        }
+        .button-half button {
+            margin-bottom: 10px;  /* Add space below buttons */
+        }
+
+        .download-button {
+            padding: 15px 25px;
+            font-size: 18px;
+            background-color: #7289DA;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            /* width: 200px;
+            height: 60px; */
+        }
+
+        .download-button:hover {
+            background-color: #5d6e8c;
+        }
+
+        
+        .output-container {
+            display: flex;
+            justify-content: center; /* Horizontally center items */
+            align-items: center;     /* Vertically center items */
+            flex-direction: column;  /* Stack items vertically */
+        }
+
+        .download-file-button {
+            margin-top: 20px; /* Adjust this to control the vertical positioning */
+        }
+
+
+        /* .download-file-button{
+            margin-top: 5%;
+        } */
+
+        #controls {
+            margin-top: 20px;
+        }
+        /* Hide the default file input */
+        #lottieFile {
+                display: none;
+            }
+        #lottieFilebutton {
+            /* margin-top: 10px; */
+            /* padding: 10px 15px; */
+            padding: 5px;
+            font-size: 18px;
+            background-color: #7289DA;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            /* width: 400px; */
+            width: 368px;
+            height: 40px;
+            align-content: center;
+
+        }
+
+        #lottieFilebutton:hover {
+            background-color: #5d6e8c;
+        }
+        /* Show selected file name */
+        #file-name {
+            /* display: inline-block; */
+            margin-top: 10px;
+            font-size: 16px;
+            color: #FFFFFF;
+        }
+
+
+        .output-files{
+            flex: 1;
+            display: flex;
+            /* flex-direction: end; */
+            gap: 10px;  /* Add some space between */
+            align-items: center;
+            justify-content: center;
+        }
+        #webmOutput,
+        #gifOutput {
+            
+            display: none;
+            width: 300px;
+            margin-top: 20px;
+        }
+
+        canvas {
+            background: transparent;
+        }
+
+        .align-row{
+           display: flex;
+           flex-direction: row;
+
+        }
+    </style>
+</head>
+
+<body>
+    <custom-sidebar></custom-sidebar> <!-- Insert the custom sidebar here -->
+    <div class="main-content"> <!-- Wrap the rest of the content in a flex container -->
+        <div class="container">
+            <h1>Lottie Sticker Viewer</h1>
+            <label for="stickerId">Lottie Sticker ID:</label>
+            <input type="text" id="stickerId" placeholder="Enter Sticker ID">
+            <button onclick="LoadStickerJson()">Load Sticker</button>
+
+            <div class="format-box">
+                <div class="sticker-half">
+                    <div id="animationContainer" class="sticker-container"></div>
+                </div>
+                <div class="button-half">
+                    <div class="align-row">
+                        <button class="download-button" onclick="convertToGIF()">Convert to GIF</button>
+                        <button class="download-button" onclick="convertToWEBM()">Convert to WEBM</button>
+                    </div>
+                    <div class="align-row">
+                        <label for="lottieFile" id="lottieFilebutton" style="margin: 12px;">Upload a Lottie JSON File:  <span id="file-name">No file selected</span></label>
+                        <!-- <label for="lottieFile" id="lottieFilebutton">Selected Lottie JSON File: </label> -->
+                            
+                        <input type="file" id="lottieFile" accept=".json">
+                        
+                        <!-- <p>Upload a Lottie JSON file here:</p> -->
+                        <!-- <input type="file" id="lottieFile" accept=".json" > -->
+                    </div>
+                </div>
+            </div>
+            <div class="output-container">
+                <h2>Output:</h2>
+                <div class="output-files">
+                    <video id="webmOutput" controls></video>
+                    <img id="gifOutput" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        let loadedAnimationData = null; // Holds the current animation data
+        let animationInstance = null;
+        let canvas = null;
+        let ctx = null;
+        let animationDuration = 0;  // Store animation duration
+
+        // Handle file upload
+        document.getElementById('lottieFile').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                loadedAnimationData = JSON.parse(e.target.result); // Store uploaded file data globally
+                loadAnimation(loadedAnimationData);
+            };
+            reader.readAsText(file);
+
+            // // Update label text when a file is selected
+            // const fileName = event.target.files[0] ? event.target.files[0].name : 'No file selected';
+            // document.getElementById('file-name').textContent = fileName;
+            const fileName = event.target.files[0] ? event.target.files[0].name : 'No file selected';
+            document.getElementById('file-name').textContent = fileName;
+
+            // Update the label text with the selected file name
+            const lottieFileButton = document.getElementById('lottieFilebutton');
+            if (event.target.files[0]) {
+                lottieFileButton.innerHTML = 'Selected Lottie JSON File: ' + fileName;
+            } else {
+                lottieFileButton.innerHTML = 'Upload a Lottie JSON File Here: <span id="file-name">No file selected</span>';
+            }
+
+
+        });
+
+        async function LoadStickerJson() {
+            const stickerId = document.getElementById('stickerId').value.trim();
+            if (!stickerId) {
+                alert("Please enter a sticker ID.");
+                return;
+            }
+
+            try {
+                // Fetch sticker JSON from the server
+                const downloadResponse = await fetch(`/download-sticker?id=${stickerId}`);
+                const downloadResult = await downloadResponse.json();
+
+                if (!downloadResponse.ok) {
+                    throw new Error(downloadResult.error || "Failed to download the sticker.");
+                }
+
+                // Fetch actual animation JSON
+                const jsonResponse = await fetch(downloadResult.file);
+                loadedAnimationData = await jsonResponse.json(); // Store it in global constant
+
+                // Load animation
+                loadAnimation(loadedAnimationData);
+                
+            } catch (error) {
+                alert("Error: " + error.message);
+                console.error(error);
+            }
+        }
+
+        // Function to load animation into the player
+        function loadAnimation(data) {
+            if (!data) {
+                console.error("No animation data available.");
+                return;
+            }
+
+            if (animationInstance) {
+                animationInstance.destroy(); // Destroy existing animation if any
+            }
+
+            animationInstance = lottie.loadAnimation({
+                container: document.getElementById('animationContainer'),
+                renderer: 'canvas',
+                loop: true,
+                autoplay: true,
+                animationData: data
+            });
+
+            animationInstance.addEventListener('DOMLoaded', () => {
+                animationDuration = animationInstance.getDuration();  // Get the duration in seconds
+                setTimeout(() => {
+                    canvas = document.querySelector('canvas');
+                    ctx = canvas.getContext('2d');
+                }, 1000);
+            });
+        }
+
+        function convertToWEBM() {
+            if (!canvas) {
+                alert("Load a Lottie JSON file first.");
+                return;
+            }
+
+            let chunks = [];
+            let stream = canvas.captureStream(30);
+            let recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+            recorder.ondataavailable = event => chunks.push(event.data);
+            recorder.onstop = () => {
+                let blob = new Blob(chunks, { type: 'video/webm' });
+                let video = document.getElementById('webmOutput');
+                video.src = URL.createObjectURL(blob);
+                video.style.display = 'block';
+
+                // Get the sticker ID from input field value
+                let stickerId = document.getElementById('stickerId').value.trim();
+                // If stickerId is empty, set it to a default name
+                if (!stickerId) {
+                    stickerId = "noID";
+                }
+
+                // Create the download link with the sticker ID and format
+                let a = document.createElement('a');
+                a.href = video.src;
+                a.download = `${stickerId}-converted-lottie.webm`; // Dynamic file name       //'animation.webm';
+                a.innerText = 'Download WEBM';
+                a.classList = 'download-button download-file-button';
+                document.querySelector('.output-container').appendChild(a);
+            };
+
+            let recordTime = (animationDuration || 5) * 2 * 1000; // Ensure we record 2 full loops
+            console.log(`Recording WEBM for ${recordTime / 1000} seconds`);
+
+            recorder.start();
+            setTimeout(() => recorder.stop(), recordTime);
+        }
+
+        function convertToGIF() {
+            if (!canvas) {
+                alert("Load a Lottie JSON file first.");
+                return;
+            }
+
+            let width = canvas.width || 400;  // Default to 400px if undefined
+            let height = canvas.height || 400;
+
+            if (!width || !height || isNaN(width) || isNaN(height)) {
+                console.error("Invalid canvas dimensions!", width, height);
+                alert("Error: Canvas dimensions are invalid.");
+                return;
+            }
+
+            let gif = new GIF({
+                workers: 2,
+                quality: 10, //was 10
+                width: width,
+                height: height,
+                transparent: 0xff0000, // Red background
+                workerScript: "./script/lottie/gif.worker.js"
+            });
+
+            let frameCount = 120;  // Capture 120 frames for smoother animation
+            let frameDelay = (animationDuration * 1000) / frameCount;
+
+            function captureFrame(index) {
+                if (index >= frameCount) {
+                    gif.render();
+                    return;
+                }
+
+                try {
+                    let tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = width;
+                    tempCanvas.height = height;
+                    let tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(canvas, 0, 0);
+
+                    let imageData = tempCtx.getImageData(0, 0, width, height);
+                    let data = imageData.data;
+
+                    const targetColor = { r: 255, g: 0, b: 0 };  // Red color
+                    const tolerance = 0.2;  // 20% range tolerance
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];  // Alpha channel
+
+                        if (a === 0) {
+                            data[i] = targetColor.r;
+                            data[i + 1] = targetColor.g;
+                            data[i + 2] = targetColor.b;
+                            data[i + 3] = 255;  // Fully opaque
+                        }
+
+                        const rDiff = Math.abs(r - targetColor.r) / 255;
+                        const gDiff = Math.abs(g - targetColor.g) / 255;
+                        const bDiff = Math.abs(b - targetColor.b) / 255;
+
+                        if (rDiff <= tolerance && gDiff <= tolerance && bDiff <= tolerance) {
+                            data[i] = targetColor.r;
+                            data[i + 1] = targetColor.g;
+                            data[i + 2] = targetColor.b;
+                            data[i + 3] = 255;
+                        }
+                    }
+
+                    tempCtx.putImageData(imageData, 0, 0);
+                    gif.addFrame(tempCtx, { copy: true, delay: frameDelay });
+
+                } catch (error) {
+                    console.error("Error capturing frame:", error);
+                    return;
+                }
+
+                requestAnimationFrame(() => captureFrame(index + 1));
+            }
+
+            gif.on('finished', function (blob) {
+                let img = document.getElementById('gifOutput');
+                img.src = URL.createObjectURL(blob);
+                img.style.display = 'block';
+
+
+                // Get the sticker ID from input field value
+                let stickerId = document.getElementById('stickerId').value.trim();
+                // If stickerId is empty, set it to a default name
+                if (!stickerId) {
+                    stickerId = "noID";
+                }
+
+
+                let a = document.createElement('a');
+                a.href = img.src;
+                a.download = `${stickerId}-converted-lottie.gif`; // Dynamic file name           //'animation.gif';
+                a.innerText = 'Download GIF';
+                a.classList= 'download-button download-file-button';
+                document.querySelector('.output-container').appendChild(a);
+            });
+
+            captureFrame(0);
+        }
+    </script>
+</body>
+
+</html>

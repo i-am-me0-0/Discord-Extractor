@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APNG to GIF Converter</title>
+    <script src="./script/sidebar.js" defer></script> <!-- Importing the custom sidebar script -->
+    <script type="module">
+        import { createFFmpeg, fetchFile } from  "./script/ffmpeg-js/+esm.js"  //"https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/+esm"; //local works got files from cdn with edits //tried local can't get it to work\\
+
+        const ffmpeg = createFFmpeg({ 
+            log: true,
+            corepath: "./script/ffmpeg-js/ffmpeg-core.js",
+        });
+
+        async function convertApngToGif() {
+            const imageUrl = document.getElementById('imageURL').value;
+            const fileInput = document.getElementById('apngFile'); // Get the file input
+            // if (!imageUrl) {
+            //     alert("Please enter an APNG URL.");
+            //     return;
+            // }
+            // Check if file is uploaded, otherwise fetch from URL
+            let file;
+            if (fileInput.files.length > 0) {
+                file = fileInput.files[0]; // Use uploaded file
+            } else if (imageUrl) {
+                try {
+                    // Fetch APNG from the URL
+                    const response = await fetch(imageUrl);
+                    const blob = await response.blob();
+                    file = new File([blob], "input.png", { type: "image/png" });
+                } catch (error) {
+                    alert("Failed to fetch the image from URL.");
+                    return;
+                }
+            }
+
+            if (!file) {
+                alert("Please upload an APNG file or enter an APNG URL.");
+                return;
+            }
+
+
+            document.getElementById("status").textContent = "Downloading APNG...";
+            document.getElementById("preview").style.display = "none";
+            document.getElementById("downloadLink").style.display = "none";
+
+            try {
+                // // Fetch APNG
+                // const response = await fetch(imageUrl);
+                // const blob = await response.blob();
+                // const file = new File([blob], "input.png", { type: "image/png" });
+
+                document.getElementById("status").textContent = "Loading FFmpeg...";
+                
+                if (!ffmpeg.isLoaded()) {
+                    await ffmpeg.load();
+                }
+
+                document.getElementById("status").textContent = "Converting to GIF...";
+
+                // Convert using FFmpeg
+                ffmpeg.FS("writeFile", "input.png", await fetchFile(file));
+                await ffmpeg.run("-i", "input.png", "-vf", "split[s0][s1];[s1]palettegen[p];[s0][p]paletteuse", "output.gif");
+
+                // Retrieve GIF
+                const gifData = ffmpeg.FS("readFile", "output.gif");
+                const gifBlob = new Blob([gifData.buffer], { type: "image/gif" });
+                const gifUrl = URL.createObjectURL(gifBlob);
+
+                // Show preview in a styled box
+                document.getElementById("imagePreviewContainer").style.display = "block";  // Show the container
+                document.getElementById("preview").src = gifUrl;  // Set the GIF source
+                document.getElementById("preview").style.display = "block";  // Ensure the image is visible
+
+                // Update download link
+                const downloadLink = document.getElementById("downloadLink");
+                downloadLink.href = gifUrl;  // Set the download URL
+                downloadLink.style.display = "inline-block";  // Make sure the download button is visible
+                document.getElementById("status").textContent = "Conversion complete!";  // Update status
+            } catch (error) {
+                console.error("Conversion failed:", error);
+                document.getElementById("status").textContent = "Error converting APNG to GIF.";
+            }
+        }
+
+        window.convertApngToGif = convertApngToGif;
+    </script>
+    <style>
+         /* body { font-family: Arial, sans-serif; display: flex; background-color: #23272A; color: #FFFFFF; margin: 0; }
+        .sidebar { width: 250px; background: #1E2124; height: 100vh; padding: 20px; box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; align-items: center; }
+        .sidebar a { text-decoration: none; display: block; padding: 10px; margin: 10px 0; font-size: 18px; border-radius: 5px; background: #7289DA; color: white; text-align: center; font-weight: bold; transition: background 0.3s; width: 100%; }
+        .sidebar a:hover { background: #5b6eae; }
+        .sidebar p { font-size: 14px; color: #B9BBBE; text-align: center; margin-top: 5px; margin-bottom: 15px; }
+        .container { flex: 1; max-width: 900px; margin: 20px auto 0 auto; padding: 20px; background: #2C2F33; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; }
+        input, button { margin: 10px; padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #7289DA; background: #7289DA; color: white; cursor: pointer; }
+        button:hover { background-color: #5d6e8c; }
+        #status { margin-top: 10px; font-weight: bold; }
+        #preview { display: none; width: 200px; margin-top: 10px; border-radius: 5px; }
+        /* a { display: none; margin-top: 10px; padding: 10px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; } */
+        /*a { display: none; margin: 10px; padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #7289DA; background: #7289DA; color: white; cursor: pointer; max-width: fit-content; } */
+
+        
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            background-color: #23272A;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #1E2124;
+            height: 100vh;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sidebar a {
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 18px;
+            border-radius: 5px;
+            background: #7289DA;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            transition: background 0.3s;
+            width: 100%;
+        }
+
+        .sidebar a:hover {
+            background: #5b6eae;
+        }
+
+        .sidebar p {
+            font-size: 14px;
+            color: #B9BBBE;
+            text-align: center;
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+
+        .container {
+            flex: 1;
+            max-width: 900px;
+            margin: 20px auto 0 auto;
+            padding: 20px;
+            background: #2C2F33;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        input, button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #7289DA;
+            background: #7289DA;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #5d6e8c;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center; margin-top: 15px; font-size: 16px; color: #ffffff;
+        }
+        #imagePreviewContainer{
+            display: none; 
+            /* border: 2px solid #ccc;  */
+            padding: 10px; 
+            /* width: 300px;  */
+            width: fit-content;
+            margin: auto; 
+            /* background-color: #f9f9f9;  */
+            border-radius: 8px; 
+            text-align: center;
+            background: #36393F;
+            border: 2px solid #7289DA;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        #preview {
+            display: none;
+            width: 200px;
+            margin-top: 10px;
+            border-radius: 5px;
+            width: auto;
+        }
+        #downloadLinkContainer{
+            /* text-align: center;  */
+            margin-top: 15px;
+        }
+        #downloadLink{
+            display: none; 
+            padding: 10px 20px; 
+            /* background-color: #007bff;  */
+            color: white; 
+            text-decoration: underline; 
+            border-radius: 5px;
+            background-color: #7289DA;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        a {
+            display: none;
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #7289DA;
+            background: #7289DA;
+            color: white;
+            cursor: pointer;
+            max-width: fit-content;
+        }
+    </style>
+</head>
+<body>
+    <custom-sidebar></custom-sidebar> <!-- Insert the custom sidebar here -->
+    <div class="container">
+        <h1>APNG to GIF Converter</h1>
+        <p>Enter an APNG URL or upload an APNG file below to convert it into a GIF using FFmpeg.</p>
+        <!-- Input for URL -->
+        <input type="text" id="imageURL" placeholder="Enter APNG URL here..." />
+        <button onclick="convertApngToGif()">Convert</button>
+        <br>
+        <!-- File upload for APNG -->
+        <input type="file" id="apngFile" accept=".apng, .png" />
+        
+        
+        <!-- Container for the Image Preview -->
+        <div id="imagePreviewContainer">
+            <img id="preview" alt="Preview" />
+        </div>
+        <br>
+        <!-- Status Text -->
+        <p id="status"></p>
+        <!-- Download Link Container -->
+        <div id="downloadLinkContainer">
+            <a id="downloadLink" download="converted.gif">Download GIF</a> 
+        <!-- file name is set in download="" -->
+        </div>
+        
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const imageUrl = urlParams.get('imageUrl'); // Retrieve imageUrl from the query parameter
+            const stickerId = urlParams.get('stickerId');
+            if (imageUrl) {
+                document.getElementById('imageURL').value = imageUrl; // Set image URL in input field
+                convertApngToGif(); // Automatically trigger conversion
+            }
+            if (stickerId) {
+                const downloadLink = document.getElementById('downloadLink');
+                // document.getElementById('downloadLink'). = stickerId; // Set name of file to stickerid_converted_sticker.gif
+                downloadLink.download = `${stickerId}_converted_sticker.gif`; // Set filename dynamically
+                
+            }
+        });
+    </script>
+</body>
+</html>

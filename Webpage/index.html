@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Emoji & Sticker Fetch</title>
+    <script src="./script/sidebar.js" defer></script> <!-- Importing sidebar script -->
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; background-color: #23272A; color: #FFFFFF; margin: 0; }
+        .container { flex: 1; max-width: 900px; margin: 20px auto 0 auto; padding: 20px; background: #2C2F33; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; transition: max-width 0.3s ease-in-out; }
+        .image-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 90%; margin: auto; transition: width 0.3s ease-in-out; }
+        .format-box { border: 2px solid #7289DA; padding: 10px; margin: 10px; border-radius: 8px; background: #36393F; width: 100%; text-align: center; }
+        .image-box { 
+            border: 2px solid #7289DA; 
+            padding: 10px; 
+            text-align: center; 
+            border-radius: 8px; 
+            background: #36393F; 
+            /* width: calc(33.33% - 20px);  */
+            width: fit-content;
+            box-sizing: border-box; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; }
+        input, button { margin: 10px; padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #7289DA; background: #7289DA; color: white; cursor: pointer; }
+        img { max-width: 100%; height: auto; display: block; margin: auto; border-radius: 5px; }
+        .button-group { display: flex; gap: 5px; justify-content: center; margin-top: 5px; flex-wrap: wrap; }
+
+        /* Hide the original checkbox */
+        input[type="checkbox"] {display: none;}
+
+        .labelcheckmark {
+            font-size: 18px;
+            color: #FFFFFF;
+            display: flex;         /* Use flexbox */
+            align-items: center;   /* Vertically align checkbox and text */
+            justify-content: center; /* Horizontally center the checkbox and text */
+            cursor: pointer;      /* Make the label clickable */
+            margin-top: 10px;      /* Space between the header and checkbox */
+            margin-bottom: 10px;
+        }
+        /* Create a custom checkbox */
+        .custom-checkbox {
+            display: inline-block; 
+            width: 24px;
+            height: 24px;
+            border: 2px solid #7289DA;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+            margin-right: 10px; /* Space between the checkbox and the text */
+        }
+
+        /* Create a checkmark when the checkbox is checked */
+        input[type="checkbox"]:checked + .custom-checkbox::after {
+            content: '\2713'; /* Checkmark symbol */
+            color: #f0f0f0;
+            /* #7289DA; */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+        }
+
+        /* Optional: Adding some hover effects */
+        .custom-checkbox:hover {
+            background-color: 
+            /* #f0f0f0; */
+            #7289DA;
+        }
+
+        
+
+
+    </style>
+</head>
+<body>
+    <custom-sidebar></custom-sidebar> <!-- Insert the sidebar-->
+
+    <div class="container" id="mainContainer">
+        <h1>Discord Emoji & Sticker Fetcher</h1>
+        <p>This tool allows you to fetch and download Discord emoji and sticker images in multiple formats such as PNG, JPG, WebP, GIF, and more. Simply enter the emoji or sticker ID, and the tool will retrieve the available formats for you to download or copy the link!</p>
+        <label for="emojiId">Emoji or Sticker ID:</label>
+        <input type="text" id="emojiId" placeholder="Enter ID">
+        <button onclick="fetchImages()">Fetch Images</button>
+        
+        <div class="image-container" id="imageContainer">
+            <div class="format-box">
+                <h2>GIF & PNG</h2>
+                <div id="gifPngContainer" class="image-container"></div>
+            </div>
+            <div class="format-box">
+                <h2>Other Formats</h2>
+                <label for="fetchOtherFormats" class="labelcheckmark">
+                    <input type="checkbox" id="fetchOtherFormats" >
+                    <span class="custom-checkbox"></span> Fetch WebP, JPG, JPEG
+                </label>
+                <div id="otherFormatsContainer" class="image-container">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function redirectToConvertPageWithImageUrl(url, stickerId) {
+            const converturl = `convert.html?imageUrl=${encodeURIComponent(url)}&stickerId=${encodeURIComponent(stickerId)}`;
+            //window.location.href = converturl; // Redirect to the convert page with the image URL as a parameter and stickerId
+            window.open(converturl, '_blank'); // Open in a new window or tab
+        }
+
+        function fetchImages() {
+            const id = document.getElementById('emojiId').value.trim();
+            if (!id) return;
+
+        // Recalculate formats based on checkbox state
+        const fetchOtherFormats = document.getElementById('fetchOtherFormats').checked;
+            const formats = fetchOtherFormats
+                ? ['gif', 'png', 'webp', 'jpg', 'jpeg']
+                : ['gif', 'png']; // Only GIF & PNG if unchecked
+            
+
+            const gifPngContainer = document.getElementById('gifPngContainer');
+            const otherFormatsContainer = document.getElementById('otherFormatsContainer');
+            const mainContainer = document.getElementById('mainContainer');
+            const imageContainer = document.getElementById('imageContainer');
+            gifPngContainer.innerHTML = '';
+            otherFormatsContainer.innerHTML = '';
+            mainContainer.style.maxWidth = '1200px';
+            imageContainer.style.width = '95%';
+            
+            let imageFound = false; // Track if any image is found
+
+            formats.forEach(format => {
+                const emojiUrl = `https://cdn.discordapp.com/emojis/${id}.${format}`;
+                const stickerUrl = `https://media.discordapp.net/stickers/${id}.${format}`;
+                const targetContainer = (format === 'gif' || format === 'png') ? gifPngContainer : otherFormatsContainer;
+                // checkImage(emojiUrl, targetContainer, format, id, "emoji");
+                // checkImage(stickerUrl, targetContainer, format, id, "sticker");
+                // Check both emoji and sticker URLs for each format
+                checkImage(emojiUrl, targetContainer, format, id, "emoji", () => {
+                    imageFound = true; // Image found, set flag to true
+                    
+                });
+                checkImage(stickerUrl, targetContainer, format, id, "sticker", () => {
+                    imageFound = true; // Image found, set flag to true
+
+                });
+            });
+            // If no images are found, trigger the fallback function
+            setTimeout(() => {
+                if (!imageFound) {
+                    noImagesFound(); //gets run when no image is found,
+                }
+            }, 1000); // Wait for all checks to complete (adjust timeout as necessary) was 1000ms
+
+        }
+
+        
+
+        function checkImage(url, container, format, id, type, onImageFound) {
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404 || response.status === 415) {
+                            // Skip the image if it doesn't exist (and console log)
+                            console.warn(`Skipping missing or unsupported image: ${url}`);
+                            return null; // Skip processing if image doesn't exist
+                        }
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    if (!blob) return; // Skip if the image was not found
+
+                    const blobUrl = URL.createObjectURL(blob); // Create a local URL from the fetched blob
+
+                    // Create a div container for the image and buttons
+                    const div = document.createElement('div');
+                    div.className = 'image-box';
+
+                    // Create the image element
+                    const img = document.createElement('img');
+                    img.src = blobUrl;
+                    img.alt = "Image";
+
+                    // Create buttons using the blob URL
+                    div.innerHTML = `<p>Format: ${format}</p>
+                                    <div class='button-group'>
+                                        <button onclick="copyToClipboard('${url}')">Copy Link</button>
+                                        <button onclick="downloadImage('${blobUrl}', '${format}', '${id}', '${type}')">Download</button>
+                                        <button onclick="window.open('${url}', '_blank')">Open</button>
+                                    </div>`;
+
+                    // If the format is PNG and it's a sticker, add the "Convert to GIF" button // emojis are never apng so no redirect button
+                    if (format === 'png' && type === 'sticker') {
+                        const convertButton = document.createElement('button');
+                        convertButton.textContent = 'Convert to GIF';
+                        convertButton.onclick = () => redirectToConvertPageWithImageUrl(url, id); // Pass both the URL and stickerId
+                        // Append the button to the same div (no new div is created)
+                        div.appendChild(convertButton);
+                    }
+
+                    // Append the image at the top
+                    div.insertBefore(img, div.firstChild);
+                    container.appendChild(div);
+
+                    // Call the callback function to mark an image as found
+                    if (onImageFound) {
+                        onImageFound();
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching image:", error);
+                // Optional: Log to the console for actual errors only
+                    console.warn(`Image fetch failed: ${url}`, error); // You can remove or comment this line if no logging is needed
+                });
+            }
+
+        // Fallback function that gets called when no images are found
+        function noImagesFound() {
+            alert("No images found for the selected formats, try the ID on the lottie page.");
+            console.log("No images were found in the selected formats.");
+        }
+
+        
+
+        function copyToClipboard(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Image link copied to clipboard!");
+            }).catch(err => {
+                console.error("Failed to copy: ", err);
+            });
+        }
+
+        function downloadImage(url, format, id, type) {
+            fetch(url)
+                .then(response => response.blob())
+                .then(blob => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `${id}_${type}.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                })
+                .catch(error => console.error("Error downloading image:", error));
+        }
+    </script>
+</body>
+</html>
