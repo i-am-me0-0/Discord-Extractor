@@ -6,7 +6,7 @@
     <title>APNG to GIF Converter</title>
     <script src="./script/sidebar.js" defer></script> <!-- Importing the custom sidebar script -->
     <script type="module">
-        import { createFFmpeg, fetchFile } from  "./script/ffmpeg-js/+esm.js"  //"https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/+esm"; //local works got files from cdn with edits //tried local can't get it to work\\
+        import { createFFmpeg, fetchFile } from  "./script/ffmpeg-js/+esm.js"  
 
         const ffmpeg = createFFmpeg({ 
             log: true,
@@ -16,10 +16,7 @@
         async function convertApngToGif() {
             const imageUrl = document.getElementById('imageURL').value;
             const fileInput = document.getElementById('apngFile'); // Get the file input
-            // if (!imageUrl) {
-            //     alert("Please enter an APNG URL.");
-            //     return;
-            // }
+            
             // Check if file is uploaded, otherwise fetch from URL
             let file;
             if (fileInput.files.length > 0) {
@@ -78,7 +75,16 @@
                 const downloadLink = document.getElementById("downloadLink");
                 downloadLink.href = gifUrl;  // Set the download URL
                 downloadLink.style.display = "inline-block";  // Make sure the download button is visible
+
+                // Show "Download to Server" button and set its action
+                const serverDownloadBtn = document.getElementById("serverDownloadBtn");
+                serverDownloadBtn.style.display = "inline-block";
+                serverDownloadBtn.onclick = function() {
+                    downloadToServer(gifUrl, NAMING_FORMAT(stickerId || "converted", "sticker", "gif"));
+                };
+
                 document.getElementById("status").textContent = "Conversion complete!";  // Update status
+
             } catch (error) {
                 console.error("Conversion failed:", error);
                 document.getElementById("status").textContent = "Error converting APNG to GIF.";
@@ -254,15 +260,19 @@
         <!-- Download Link Container -->
         <div id="downloadLinkContainer">
             <a id="downloadLink" download="converted.gif">Download GIF</a> 
+            <button id="serverDownloadBtn" style="display: none;">Download to Server</button>
         <!-- file name is set in download="" -->
         </div>
         
     </div>
     <script>
+        const NAMING_FORMAT = (id, type, format) => `${id}_converted_${type}.${format}`;
+        let stickerId = null; // Declare it globally
+
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const imageUrl = urlParams.get('imageUrl'); // Retrieve imageUrl from the query parameter
-            const stickerId = urlParams.get('stickerId');
+            stickerId = urlParams.get('stickerId');// Assign value to global variable
             if (imageUrl) {
                 document.getElementById('imageURL').value = imageUrl; // Set image URL in input field
                 convertApngToGif(); // Automatically trigger conversion
@@ -274,6 +284,37 @@
                 
             }
         });
+
+       
+        function downloadToServer(blobUrl, fileName) {
+        fetch(blobUrl) // Convert blob URL to actual blob
+            .then(response => response.blob()) // Get blob from blob URL
+            .then(blob => {
+                const formData = new FormData();
+                const formattedFileName = NAMING_FORMAT(stickerId || "converted", "sticker", "gif"); // Apply naming format
+                formData.append("file", blob, formattedFileName); // Append file with correct name
+                // formData.append("file", blob, fileName); // Append file with correct name
+
+                return fetch("/upload", {
+                    method: "POST", // Use POST instead of GET
+                    body: formData
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message && !data.error) {
+                    alert("Successfully saved to server!");
+                } else {
+                    throw new Error(data.error || "Unknown error occurred.");
+                }
+            })
+            .catch(error => {
+                console.error("Download error:", error);
+                alert("Error saving to server.");
+            });
+    }
+
+
     </script>
 </body>
 </html>
