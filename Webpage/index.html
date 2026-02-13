@@ -83,8 +83,24 @@
         <p>This tool allows you to fetch and download Discord emoji and sticker images in multiple formats such as PNG, JPG, WebP, GIF, and more. Simply enter the emoji or sticker ID, and the tool will retrieve the available formats for you to download or copy the link!</p>
         <label for="emojiId">Emoji or Sticker ID:</label>
         <input type="text" id="emojiId" placeholder="Enter ID">
+        <!-- The size select dropdown -->
+        <label for="sizeSelect">Choose Size of Emoji:</label>
+            <select id="sizeSelect">
+            <option value="">Default (Full Resolution)</option>
+            
+            <option value="32">32 (Standard in chat message)</option>
+
+            <option value="16">16</option>
+            <option value="64">64</option>
+            <option value="128">128</option>
+            <option value="256">256</option>
+            <option value="512">512</option>
+            </select>
         <button onclick="fetchImages()">Fetch Images</button>
         
+        <p id="successMessage" style="display: none; color: green;">Download successful!</p>
+        <p id="errorMessage" style="display: none; color: red;">Download failed!</p>
+
         <div class="image-container" id="imageContainer">
             <div class="format-box">
                 <h2>GIF & PNG</h2>
@@ -103,6 +119,16 @@
     </div>
 
     <script>
+        // Define a hardcoded naming format for easy modification (download to server)
+        const NAMING_FORMAT = (id, type, format) => `${id}_${type}.${format}`;
+
+        // Add an event listener to trigger fetchImages() when the Enter key is pressed in the ID input field
+        document.getElementById('emojiId').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                fetchImages();
+            }
+        });
+
         function redirectToConvertPageWithImageUrl(url, stickerId) {
             const converturl = `convert.html?imageUrl=${encodeURIComponent(url)}&stickerId=${encodeURIComponent(stickerId)}`;
             //window.location.href = converturl; // Redirect to the convert page with the image URL as a parameter and stickerId
@@ -111,6 +137,7 @@
 
         function fetchImages() {
             const id = document.getElementById('emojiId').value.trim();
+            const size = document.getElementById('sizeSelect').value;
             if (!id) return;
 
         // Recalculate formats based on checkbox state
@@ -132,11 +159,16 @@
             let imageFound = false; // Track if any image is found
 
             formats.forEach(format => {
-                const emojiUrl = `https://cdn.discordapp.com/emojis/${id}.${format}`;
+                let emojiUrl = `https://cdn.discordapp.com/emojis/${id}.${format}`;
+                if (size && (format === 'gif' || format === 'png' || format === 'webp' || format === 'jpg' || format === 'jpeg')) {
+                    // Only apply the size parameter to emojis; stickers are unaffected.
+                    emojiUrl += `?size=${size}`;
+                }
+
+                
                 const stickerUrl = `https://media.discordapp.net/stickers/${id}.${format}`;
                 const targetContainer = (format === 'gif' || format === 'png') ? gifPngContainer : otherFormatsContainer;
-                // checkImage(emojiUrl, targetContainer, format, id, "emoji");
-                // checkImage(stickerUrl, targetContainer, format, id, "sticker");
+                
                 // Check both emoji and sticker URLs for each format
                 checkImage(emojiUrl, targetContainer, format, id, "emoji", () => {
                     imageFound = true; // Image found, set flag to true
@@ -191,6 +223,7 @@
                                         <button onclick="copyToClipboard('${url}')">Copy Link</button>
                                         <button onclick="downloadImage('${blobUrl}', '${format}', '${id}', '${type}')">Download</button>
                                         <button onclick="window.open('${url}', '_blank')">Open</button>
+                                        <button onclick="downloadToServer('${url}', '${NAMING_FORMAT(id, type, format)}')">Download to Server</button>
                                     </div>`;
 
                     // If the format is PNG and it's a sticker, add the "Convert to GIF" button // emojis are never apng so no redirect button
@@ -247,6 +280,27 @@
                 })
                 .catch(error => console.error("Error downloading image:", error));
         }
+
+        function downloadToServer(url, fileName) {
+        fetch(`/save-image?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`)
+            .then(response => response.json())
+            .then(data => {
+            if (data.message && !data.error) { // Checking if there's a success message and no error
+                document.getElementById("successMessage").style.display = "block";
+                document.getElementById("errorMessage").style.display = "none";
+            } else {
+                throw new Error(data.error || "Unknown error occurred.");
+            }
+        })
+        .catch((error) => {
+            console.error("Download error:", error);
+            document.getElementById("successMessage").style.display = "none";
+            document.getElementById("errorMessage").style.display = "block";
+        });
+            
+            //{}alert(data.message || data.error))
+            // .catch(console.error);
+    }
     </script>
 </body>
 </html>

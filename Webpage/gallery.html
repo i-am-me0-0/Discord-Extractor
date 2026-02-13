@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Gallery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #23272A;
+            color: white;
+            text-align: center;
+            display: flex; /* Make body a flex container */
+        }
+        .container {
+            display: flex;
+            flex-grow: 1;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            text-align: center;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            
+        }
+
+        .gallery img {
+            max-width: 200px; /* Ensures the width does not exceed 200px */
+            max-height: 200px; /* Ensures the height does not exceed 200px */
+            width: auto; /* Maintain aspect ratio */
+            height: auto; /* Maintain aspect ratio */
+            object-fit: contain; /* Prevents distortion while fitting inside the box */
+            border-radius: 8px;
+            border: 2px solid #7289DA;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .gallery img:hover {
+            transform: scale(1.1);
+        }
+
+        custom-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh; /* Full height */
+            width: 250px; /* Adjust width as needed */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000; /* Ensure it stays above other content */
+            flex-shrink: 0; /* Prevent the sidebar from shrinking */
+        }
+
+        .container {
+            margin-left: 250px; /* Same as sidebar width to prevent overlap */
+        }
+
+
+        .borderbox{
+            border-radius: 8px;
+
+        }
+        .innerborder{
+            margin-left: 4%;
+            margin-right: 4%;
+        }
+
+        .borderbox h2 {
+            border-top: 2px solid #7289DA; /* Adds the underline */
+        }
+        /* Exempt h2 with the 'no-underline' class from the underline */
+        .borderbox h2.no-underline {
+            border-top: none; /* Removes the underline */
+        }
+    </style>
+    <script src="./script/sidebar.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <custom-sidebar></custom-sidebar>
+        <div class="content">
+            <h1>Saved Images</h1>
+
+         
+            <div class="borderbox innerborder">
+                <h2 class="no-underline">Root Directory</h2>
+                <div class="gallery" id="rootGallery"></div>
+                <div id="foldersContainer"></div> <!-- Dynamic subfolders will be added here -->
+                
+            </div>
+        </div>
+    </div>
+    <script>
+        async function loadImages() {
+            try {
+                const response = await fetch('/list-images');
+                const data = await response.json();
+
+                const rootGallery = document.getElementById("rootGallery");
+                const foldersContainer = document.getElementById("foldersContainer");
+                rootGallery.innerHTML = "";
+                foldersContainer.innerHTML = "";
+
+        function createImageElement(src, filename) {
+            const container = document.createElement("div");
+            container.style.display = "flex";
+            container.style.flexDirection = "column";
+            container.style.alignItems = "center";
+            container.style.maxWidth = "200px"; // Ensure uniform width
+            container.style.margin = "5px";
+
+            const imgElement = document.createElement("img");
+            imgElement.src = src;
+            imgElement.alt = filename;
+            imgElement.style.maxWidth = "200px";
+            imgElement.style.borderRadius = "8px";
+
+            const label = document.createElement("span");
+            label.textContent = filename;
+            label.style.fontSize = "12px";
+            label.style.color = "#BBB"; // Light gray
+            label.style.marginTop = "5px";
+            label.style.wordBreak = "break-word"; // Prevent overflow issues
+
+            container.appendChild(imgElement);
+            container.appendChild(label);
+            return container;
+        }
+
+        // Load root images
+        if (data.root.length === 0) {
+            rootGallery.innerHTML = "<p>No images found in root.</p>";
+        } else {
+            data.root.forEach(image => {
+                rootGallery.appendChild(createImageElement(`/saved_images/${image}`, image));
+            });
+        }
+
+        // Load images from subfolders
+        for (const folder in data.folders) {
+            if (data.folders[folder].length > 0) {
+                const folderDiv = document.createElement("div");
+                folderDiv.innerHTML = `<h2>${folder}</h2><div class="gallery" id="gallery-${folder.replace(/\s+/g, '-')}" ></div>`;
+                foldersContainer.appendChild(folderDiv);
+
+                const galleryDiv = folderDiv.querySelector(".gallery");
+                data.folders[folder].forEach(image => {
+                    galleryDiv.appendChild(createImageElement(`/saved_images/${folder}/${image}`, image));
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error loading images:", error);
+    }
+}
+
+window.onload = loadImages;
+
+    </script>
+</body>
+</html>

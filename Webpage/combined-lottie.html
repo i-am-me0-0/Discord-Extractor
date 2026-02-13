@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie Sticker</title>
+    <script src="./script/sidebar.js" defer></script> <!-- Importing the custom sidebar script -->
+    <script src="./script/lottie/lottie-player.js"></script>
+    <script src="./script/lottie/lottie.min.js"></script> <!-- https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js -->
+    <script type="module">
+        import { createFFmpeg, fetchFile } from "./script/ffmpeg-js/+esm.js";
+
+        let animation;
+        let isAnimationReady = false;
+        let extractedFrames = []; // Store extracted frames as ImageData
+        
+        // Initialize ffmpeg.wasm
+        const ffmpeg = createFFmpeg({ 
+            log: true,
+            corepath: "./script/ffmpeg-js/ffmpeg-core.js",
+         });
+
+        async function loadAnimation() {
+            animation = lottie.loadAnimation({
+                container: document.getElementById('lottieContainer'),
+                renderer: 'canvas',
+                loop: false,
+                autoplay: false,
+                path: "http://localhost:9000/sticker_cache/sticker.json"
+            });
+
+            animation.addEventListener("DOMLoaded", () => {
+                console.log("Lottie animation loaded.");
+                isAnimationReady = true;
+                animation.goToAndStop(0, true);
+            });
+        }
+
+        async function extractFrames() {
+            if (!isAnimationReady) {
+                console.error("Animation not ready.");
+                return;
+            }
+
+            const totalFrames = animation.totalFrames;
+            const canvas = document.getElementById('captureCanvas');
+            const ctx = canvas.getContext('2d');
+            const lottieCanvas = document.querySelector("#lottieContainer canvas");
+            const framesContainer = document.getElementById('framesContainer');
+
+            if (!lottieCanvas) {
+                console.error("Lottie canvas not found!");
+                return;
+            }
+
+            canvas.width = lottieCanvas.width;
+            canvas.height = lottieCanvas.height;
+
+            framesContainer.innerHTML = "";
+            extractedFrames = [];
+
+            const FRAME_STEP = 2; // Extract every 2nd frame (adjust as needed)
+
+            for (let i = 0; i < totalFrames; i += FRAME_STEP) {
+
+            //for (let i = 0; i < totalFrames; i++) {
+                animation.goToAndStop(i, true);
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(lottieCanvas, 0, 0, canvas.width, canvas.height);
+
+                // Store ImageData as base64 string for ffmpeg processing
+                extractedFrames.push(canvas.toDataURL("image/png"));
+
+                // Create image preview
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL("image/png");
+                framesContainer.appendChild(img);
+            }
+
+            console.log("Frames extracted and displayed.");
+        }
+
+        async function createAPNG() {
+            if (extractedFrames.length === 0) {
+                console.error("No frames available for APNG creation.");
+                alert("No frames available for APNG creation. \nFirst click 'Extract Frames'")
+                return;
+            }
+            // Retrieve the framerate from the Lottie animation
+            const framerate = animation.animationData.framerate || 30; // Default to 59 if no framerate is specified
+
+            // Load ffmpeg.wasm
+            if (!ffmpeg.isLoaded()) {
+                await ffmpeg.load();
+            }
+
+            // Prepare input files for ffmpeg
+            for (let i = 0; i < extractedFrames.length; i++) {
+                const dataUrl = extractedFrames[i];
+                const fileName = `frame${i}.png`;
+                const data = await fetch(dataUrl).then(res => res.blob());
+                await ffmpeg.FS('writeFile', fileName, new Uint8Array(await data.arrayBuffer()));
+            }
+
+            // Convert frames to APNG using ffmpeg
+            const outputName = 'output.apng';
+            await ffmpeg.run(
+                '-framerate', `${framerate}`,  // Set the correct framerate from Lottie
+                '-i', 'frame%d.png',              // Input pattern (frame1.png, frame2.png, etc.)
+                '-plays', '0',                    // Infinite loop (in APNG format)
+                outputName                        // Output APNG file
+            );
+
+            // Retrieve the result and create a Blob URL
+            const data = ffmpeg.FS('readFile', outputName);
+            const apngBlob = new Blob([data.buffer], { type: 'image/png' });
+            const apngUrl = URL.createObjectURL(apngBlob);
+
+            //download functions
+            document.getElementById('lottieContainer').innerHTML = `<img src="${apngUrl}" width="100%" height="100%">`;
+            showDownloadButtons(apngUrl, "png");
+
+            // Display the APNG in the container
+            document.getElementById('lottieContainer').innerHTML = `<img src="${apngUrl}" width="100%" height="100%">`;
+
+            console.log("APNG created and displayed.");
+        }
+
+
+        async function createGIF() {
+            if (extractedFrames.length === 0) {
+                console.error("No frames available for GIF creation.");
+                alert("No frames available for APNG creation. \nFirst click 'Extract Frames'")
+                return;
+            }
+
+            //const framerate = 30; // Set 30 FPS for smooth animation
+
+            // Load ffmpeg.wasm
+            if (!ffmpeg.isLoaded()) {
+                await ffmpeg.load();
+            }
+
+            // Prepare input frames for ffmpeg
+            for (let i = 0; i < extractedFrames.length; i++) {
+                const dataUrl = extractedFrames[i];
+                const fileName = `frame${i}.png`;
+                const data = await fetch(dataUrl).then(res => res.blob());
+                await ffmpeg.FS('writeFile', fileName, new Uint8Array(await data.arrayBuffer()));
+            }
+
+            // Convert frames to GIF using ffmpeg
+            const outputName = 'output.gif';
+            await ffmpeg.run(
+                '-framerate', '30',  //`${framerate}`,  // Set framerate to 30 FPS
+                '-i', 'frame%d.png',          // Input frame sequence
+                '-filter_complex', '[0:v]split[v1][v2];[v1]palettegen[p];[v2][p]paletteuse=dither=bayer', // Generate color palette
+                '-b:v', '2000k',              // High bitrate for better quality was 5000k
+                '-plays', '0',                 // Infinite loop (for GIFs)
+                '-y', outputName               // Output GIF file
+            );
+
+            // Retrieve the result and create a Blob URL
+            const data = ffmpeg.FS('readFile', outputName);
+            const gifBlob = new Blob([data.buffer], { type: 'image/gif' });
+            const gifUrl = URL.createObjectURL(gifBlob);
+
+            //download functions
+            document.getElementById('lottieContainer').innerHTML = `<img src="${gifUrl}" width="100%" height="100%">`;
+            showDownloadButtons(gifUrl, "gif");
+
+            // Display the GIF
+            document.getElementById('lottieContainer').innerHTML = `<img src="${gifUrl}" width="100%" height="100%">`;
+
+            console.log("GIF created and displayed.");
+
+            //create logs for testing
+            //await ffmpeg.run('-i', outputName, '-hide_banner');
+
+        }
+
+        function showDownloadButtons(blobUrl, format) {
+        const stickerId = document.getElementById('stickerId').value.trim() || "no-id";
+        const fileName = `${stickerId}_converted_lottie.${format}`;
+        
+        // Show and setup the download button
+        const downloadBtn = document.getElementById("downloadBtn");
+        downloadBtn.style.display = "block";
+        downloadBtn.onclick = () => {
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        // Show and setup the server download button
+        const serverDownloadBtn = document.getElementById("serverDownloadBtn");
+        serverDownloadBtn.style.display = "block";
+        serverDownloadBtn.onclick = () => downloadToServer(blobUrl, fileName);
+    }
+
+    function downloadToServer(blobUrl, fileName) {
+        fetch(blobUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                const formData = new FormData();
+                formData.append("file", blob, fileName);
+                
+                return fetch("/upload", {
+                    method: "POST",
+                    body: formData
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message && !data.error) {
+                    alert("Successfully saved to server!");
+                } else {
+                    throw new Error(data.error || "Unknown error occurred.");
+                }
+            })
+            .catch(error => {
+                console.error("Download error:", error);
+                alert("Error saving to server.");
+            });
+    }
+
+        // Expose functions globally
+        window.extractFrames = extractFrames;
+        window.createAPNG = createAPNG;
+        window.createGIF = createGIF;
+
+        window.showDownloadButtons = showDownloadButtons;
+        window.downloadToServer = downloadToServer;
+        window.loadAnimation = loadAnimation;
+        loadAnimation();
+    </script>
+    <style>
+        /* body {
+            font-family: Arial, sans-serif;
+            background-color: #23272A;
+            color: #FFFFFF;
+            text-align: center;
+        } */
+        body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                margin: 0;
+                padding: 0;
+                background-color: #23272A;
+                color: #FFFFFF;
+                align-items: flex-start;
+                margin-top: 10px;
+            }
+            .main-content {
+                display: flex;
+                flex: 1;
+                flex-direction: column;
+                align-items: center;
+                padding: 20px;
+                text-align: center;
+            }
+            .container {
+                max-width: 900px;
+                margin: auto;
+                padding: 20px;
+                background: #2C2F33;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                max-width: fit-content;
+            }
+            .top-section {
+    display: flex;
+    flex-direction: row; /* Place containers side by side */
+    gap: 250px;
+}
+
+        h1 {
+                font-size: 2em;
+                margin-bottom: 20px;
+            }
+            input, button {
+                padding: 10px;
+                margin: 10px;
+                font-size: 16px;
+                border-radius: 5px;
+                border: 1px solid #7289DA;
+                background: #7289DA;
+                color: white;
+                cursor: pointer;
+            }
+            button:hover {
+            background-color: #5d6e8c;
+        }
+
+            .sticker-container {
+                width: 300px;
+                height: 300px;
+                background: #36393F;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid #7289DA;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+                margin: auto;
+                border-radius: 8px;
+            }
+        #lottieContainer {
+            width: 100%;
+            height: 100%;
+            /* position: absolute; */
+            /* margin-top: 300%; */
+            
+        }
+        canvas {
+            display: none;
+            /* max-width: 300px;
+            max-height: 300px; */
+        }
+
+        .frames-container {
+    width: 100%;
+    text-align: center;
+    margin-top: 5%;
+}
+        #framesContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+        #framesContainer img {
+            border: 2px solid #7289DA;
+            border-radius: 5px;
+            width: 80px;
+            height: 80px;
+            background: #2C2F33;
+        }
+
+            
+
+        /* Hide the original checkbox */
+        input[type="checkbox"] { display: none; }
+
+        .labelcheckmark {
+            font-size: 18px;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+
+        /* Custom checkbox */
+        .custom-checkbox {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #7289DA;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        /* Checkmark when checked */
+        input[type="checkbox"]:checked + .custom-checkbox::after {
+            content: '\2713'; /* Checkmark symbol */
+            color: #f0f0f0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+        }
+
+        /* Hover effect */
+        .custom-checkbox:hover {
+            background-color: #7289DA;
+        }
+            
+            
+        </style>
+</head>
+<body>
+    <custom-sidebar></custom-sidebar>
+    
+    <div class="main-content">
+        <div class="top-section">
+        <div class="container">
+            <h1>Lottie Sticker Viewer</h1>
+            <label for="stickerId">Lottie Sticker ID:</label>
+            <input type="text" id="stickerId" placeholder="Enter Sticker ID">
+            <button onclick="LoadStickerJson()">Load Sticker</button>
+            <label class="labelcheckmark">
+                <input type="checkbox" id="overrideCheckbox">
+                <span class="custom-checkbox"></span> Load Cached Sticker 
+                <!-- Override No Sticker ID -->
+            </label>
+            
+            
+            <div id="animationContainer" class="sticker-container">
+                <!-- <lottie-player src="http://localhost:9000/sticker_cache/sticker.json" background="transparent" loop autoplay></lottie-player> -->
+            </div>
+            <!-- temp link to other lottie page -->
+             <!-- <a href="./extract-lottie.html">temp link to other lottie page</a> -->
+        </div>
+        <div class="container">
+            <h1>Converted Lottie Animation</h1>
+            <div class="sticker-container">
+                <div id="lottieContainer"></div>
+            </div>
+            <canvas id="captureCanvas"></canvas>
+            
+            <button onclick="createAPNG()">Generate APNG</button>
+            <button onclick="createGIF()">Generate GIF</button>
+
+            <div style="display: flex; flex-direction: row-reverse; justify-content: center;">
+                <button id="downloadBtn" style="display: none;">Download</button>
+                <button id="serverDownloadBtn" style="display: none;">Download to Server</button>
+            </div>
+            
+        </div>
+    </div>
+        <div class="container frames-container">
+            <h1>Extracted Frames</h1>
+            <button onclick="extractFrames()">Extract Frames</button>
+            <div id="framesContainer"></div>
+        </div>
+    </div>
+    <script>
+        async function LoadStickerJson() {
+            const overrideCheckbox = document.getElementById('overrideCheckbox').checked;
+            const stickerId = document.getElementById('stickerId').value.trim();
+            if (!overrideCheckbox && !stickerId) {
+                alert("Please enter a sticker ID.");
+                return;
+            }
+
+            try {
+                // const downloadResponse = await fetch(`/download-sticker?id=${stickerId}`);
+                // const downloadResult = await downloadResponse.json();
+
+                const url = overrideCheckbox ? "/sticker_cache/sticker.json" : `/download-sticker?id=${stickerId}`;
+                const downloadResponse = await fetch(url);
+                const downloadResult = overrideCheckbox ? {} : await downloadResponse.json();
+
+                if (!downloadResponse.ok) {
+                    throw new Error(downloadResult.error || "Failed to download the sticker.");
+                }
+
+                // // Clear previous animation
+                // const animationContainer = document.getElementById('animationContainer');
+                // animationContainer.innerHTML = ''; 
+
+                const animationContainer = document.getElementById('animationContainer');
+
+                // Explicitly remove old Lottie player
+                const oldLottiePlayer = animationContainer.querySelector('lottie-player');
+                if (oldLottiePlayer) {
+                    oldLottiePlayer.stop();  // Stop animation if running
+                    oldLottiePlayer.remove();  // Remove element
+                }
+
+                const lottieContainer = document.getElementById('lottieContainer');
+                lottieContainer.innerHTML = ""; // Clear previous canvas renderer
+
+                // Create a new lottie-player instance and append it
+                const lottiePlayer = document.createElement('lottie-player');
+                lottiePlayer.setAttribute('src', "/sticker_cache/sticker.json");
+                lottiePlayer.setAttribute('background', "transparent");
+                lottiePlayer.setAttribute('loop', "");
+                lottiePlayer.setAttribute('autoplay', "");
+                
+                animationContainer.appendChild(lottiePlayer);
+
+                // Reload the animation for extraction
+                loadAnimation();
+            } catch (error) {
+                alert("Error: " + error.message);
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

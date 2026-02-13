@@ -4,6 +4,8 @@
 
 A lightweight web-based program that allows you to fetch stickers and emojis from Discord's CDN using just their ID. It supports all formats used by Discord and provides conversion capabilities for certain formats.
 
+Github pages version is at https://i-am-me0-0.github.io/Discord-Extractor
+
 ## Features at a Glance
 
 - **Fetch any Discord sticker or emoji** using its ID (obtainable via Developer Mode in Discord).
