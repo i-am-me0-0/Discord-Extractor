@@ -144,7 +144,7 @@
         const fetchOtherFormats = document.getElementById('fetchOtherFormats').checked;
             const formats = fetchOtherFormats
                 ? ['gif', 'png', 'webp', 'jpg', 'jpeg']
-                : ['gif', 'png']; // Only GIF & PNG if unchecked
+                : ['gif', 'png', 'a-webp']; // Only GIF & PNG if unchecked
             
 
             const gifPngContainer = document.getElementById('gifPngContainer');
@@ -178,6 +178,22 @@
                     imageFound = true; // Image found, set flag to true
 
                 });
+                        // Check for animated WebP as well**
+                if (format === 'a-webp') {
+                    let animatedWebpUrl = `https://cdn.discordapp.com/emojis/${id}.webp`;
+                    if (size) {
+                        animatedWebpUrl += `?size=${size}&animated=true`;
+                    } else {
+                        animatedWebpUrl += `?animated=true`;
+                    }
+                    
+                    checkImage(animatedWebpUrl, targetContainer, 'awebp', id, "emoji", () => {
+                        imageFound = true;
+                    });
+                    // checkImage(animatedWebpUrl, targetContainer, 'awebp', id, "sticker", () => {
+                    //     imageFound = true; // Image found, set flag to true
+                    // });
+                }
             });
             // If no images are found, trigger the fallback function
             setTimeout(() => {

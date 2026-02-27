@@ -44,7 +44,7 @@
         }
 
         .gallery img:hover {
-            transform: scale(1.1);
+            transform: scale(1.5);
         }
 
         custom-sidebar {
@@ -128,6 +128,20 @@
             label.style.color = "#BBB"; // Light gray
             label.style.marginTop = "5px";
             label.style.wordBreak = "break-word"; // Prevent overflow issues
+
+            // Check image dimensions once loaded
+            imgElement.onload = function() {
+                if (this.naturalWidth <= 32 && this.naturalHeight <= 32) {
+                    // Add a small red dot indicator for tiny images
+                    label.innerHTML = `<span style="color: #FFA500;">[!]</span> ${filename}`;
+                    label.title = `Tiny, chat sized: ${this.naturalWidth}x${this.naturalHeight}px`;
+                } else {
+                    label.textContent = filename;
+                }
+            };
+
+            // Set initial text (will be updated when image loads)
+            label.textContent = filename;
 
             container.appendChild(imgElement);
             container.appendChild(label);
