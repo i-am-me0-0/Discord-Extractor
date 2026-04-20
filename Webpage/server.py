@@ -248,12 +248,16 @@ class CustomHandler(SimpleHTTPRequestHandler):
 
         if folder_filter != "root":
             result["folders"] = {}
-            for entry in os.scandir(image_dir):
-                if entry.is_dir():
-                    if folder_filter and entry.name != folder_filter:
-                        continue
-                    items, total = get_files(entry.path)
-                    result["folders"][entry.name] = {"items": items, "total": total}
+            entries = [e for e in os.scandir(image_dir) if e.is_dir()]
+            if sort in ("name_asc", "name_desc"):
+                entries.sort(key=lambda e: e.name.lower(), reverse=(sort == "name_desc"))
+            elif sort in ("date_asc", "date_desc"):
+                entries.sort(key=lambda e: e.stat().st_mtime, reverse=(sort == "date_desc"))
+            for entry in entries:
+                if folder_filter and entry.name != folder_filter:
+                    continue
+                items, total = get_files(entry.path)
+                result["folders"][entry.name] = {"items": items, "total": total}
 
         self.send_response(200)
         self.send_header("Content-Type", "application/json")

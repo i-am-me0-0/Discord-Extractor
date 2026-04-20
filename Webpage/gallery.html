@@ -391,10 +391,15 @@ async function loadImages(reset = false) {
     updateCount("rootCount", rootTotal);
 
     // Discover folders (limit:0 just to list folder names + totals)
-    const res = await fetch(`/list-images?limit=0&offset=0&search=${encodeURIComponent(state.search)}`);
+    const res = await fetch(`/list-images?limit=0&offset=0&search=${encodeURIComponent(state.search)}&sort=${state.sort}`);
     const data = await res.json();
     const allFolders = Object.keys(data.folders || {})
-        .filter(f => !f.startsWith("."));  // always hide dot-folders
+        .filter(f => !f.startsWith("."))
+        .sort((a, b) => {
+            if (state.sort === "name_asc") return a.localeCompare(b);
+            if (state.sort === "name_desc") return b.localeCompare(a);
+            return 0; // date sorts rely on server order
+        });
 
     for (const folder of allFolders) {
         const folderTotal = data.folders[folder]?.total ?? 0;
