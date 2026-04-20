@@ -12,6 +12,7 @@ class CustomHandler(SimpleHTTPRequestHandler):
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
         super().end_headers()
+
     def do_GET(self):
         if self.path.startswith("/download-sticker"):
             self.download_sticker()
@@ -21,9 +22,11 @@ class CustomHandler(SimpleHTTPRequestHandler):
             self.save_image()
         elif self.path.startswith("/list-images"):  # New route
             self.list_images()
+        elif self.path.startswith("/move-image"):
+            self.move_image()
         else:
             super().do_GET()
-    
+
     def do_POST(self):
         if self.path == "/upload":
             self.handle_file_upload()
@@ -73,8 +76,11 @@ class CustomHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps({"message": "File uploaded successfully!", "file": file_path}).encode())
-
+        self.wfile.write(
+            json.dumps(
+                {"message": "File uploaded successfully!", "file": file_path}
+            ).encode()
+        )
 
     def download_sticker(self):
         # Extract sticker ID from URL query parameters
@@ -90,7 +96,7 @@ class CustomHandler(SimpleHTTPRequestHandler):
             return
 
         sticker_url = f"https://cdn.discordapp.com/stickers/{sticker_id}.json"
-                # Ensure sticker_cache folder exists
+        # Ensure sticker_cache folder exists
         cache_dir = "sticker_cache"
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
@@ -108,7 +114,14 @@ class CustomHandler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"message": "Sticker downloaded successfully!", "file": json_file_path}).encode())
+            self.wfile.write(
+                json.dumps(
+                    {
+                        "message": "Sticker downloaded successfully!",
+                        "file": json_file_path,
+                    }
+                ).encode()
+            )
 
         except requests.exceptions.RequestException as e:
             self.send_response(500)
@@ -117,36 +130,43 @@ class CustomHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def serve_sticker_json(self):
-            json_file_path = os.path.join("sticker_cache", "sticker.json")
+        json_file_path = os.path.join("sticker_cache", "sticker.json")
 
-            if os.path.exists(json_file_path):
-                with open(json_file_path, "rb") as f:
-                    content = f.read()
-        
-                etag = hashlib.md5(content).hexdigest()  # Generate an ETag from the file's hash
+        if os.path.exists(json_file_path):
+            with open(json_file_path, "rb") as f:
+                content = f.read()
 
-                # Check if the client already has the latest version
-                if "If-None-Match" in self.headers and self.headers["If-None-Match"] == etag:
-                    self.send_response(304)  # Not Modified
-                    self.end_headers()
-                    return
+            etag = hashlib.md5(
+                content
+            ).hexdigest()  # Generate an ETag from the file's hash
 
-                self.send_response(200)
-                # Add headers to prevent caching
-                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0")
-                self.send_header("Pragma", "no-cache")  # For HTTP/1.0 compatibility
-                self.send_header("Expires", "0")  # Ensures that the content is not cached
-
-                self.send_header("Content-Type", "application/json")
+            # Check if the client already has the latest version
+            if (
+                "If-None-Match" in self.headers
+                and self.headers["If-None-Match"] == etag
+            ):
+                self.send_response(304)  # Not Modified
                 self.end_headers()
-                with open(json_file_path, "rb") as f:
-                    self.wfile.write(f.read())
-            else:
-                self.send_response(404)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Sticker file not found."}).encode())
+                return
 
+            self.send_response(200)
+            # Add headers to prevent caching
+            self.send_header(
+                "Cache-Control",
+                "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            )
+            self.send_header("Pragma", "no-cache")  # For HTTP/1.0 compatibility
+            self.send_header("Expires", "0")  # Ensures that the content is not cached
+
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            with open(json_file_path, "rb") as f:
+                self.wfile.write(f.read())
+        else:
+            self.send_response(404)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Sticker file not found."}).encode())
 
     def save_image(self):
         url = self.get_query_param("url")
@@ -169,7 +189,14 @@ class CustomHandler(SimpleHTTPRequestHandler):
             with open(file_path, "wb") as f:
                 f.write(response.content)
 
-            self.respond(200, {"success": True,"message": "File saved successfully!", "file": file_path})
+            self.respond(
+                200,
+                {
+                    "success": True,
+                    "message": "File saved successfully!",
+                    "file": file_path,
+                },
+            )
         except requests.exceptions.RequestException as e:
             self.respond(500, {"error": str(e)})
 
@@ -187,30 +214,90 @@ class CustomHandler(SimpleHTTPRequestHandler):
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
 
-        categorized_images = {"root": [], "folders": {}}
+        query = urlparse(self.path).query
+        params = parse_qs(query)
 
-        # Walk through the directory
-        for root, dirs, files in os.walk(image_dir):
-            relative_path = os.path.relpath(root, image_dir)
-            
-            # Ignore root "." and set images in the main directory
-            if relative_path == ".":
-                categorized_images["root"] = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
-            else:
-                categorized_images["folders"][relative_path] = [
-                    f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))
-                ]
+        search = params.get("search", [""])[0].lower()
+        sort = params.get("sort", ["name_asc"])[0]
+        limit = int(params.get("limit", [20])[0])
+        offset = int(params.get("offset", [0])[0])
+        folder_filter = params.get("folder", [None])[0]  # "root" or subfolder name
+
+        EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+
+        def get_files(path):
+            files = [f for f in os.listdir(path) if f.lower().endswith(EXTENSIONS)]
+            if search:
+                files = [f for f in files if search in f.lower()]
+            reverse = sort in ("name_desc", "date_desc")
+            if sort in ("name_asc", "name_desc"):
+                files.sort(key=lambda f: f.lower(), reverse=reverse)
+            elif sort in ("date_asc", "date_desc"):
+                files.sort(
+                    key=lambda f: os.path.getmtime(os.path.join(path, f)),
+                    reverse=reverse,
+                )
+            total = len(files)
+            return files[offset : offset + limit], total
+
+        result = {}
+
+        if folder_filter is None or folder_filter == "root":
+            items, total = get_files(image_dir)
+            result["root"] = {"items": items, "total": total}
+
+        if folder_filter != "root":
+            result["folders"] = {}
+            for entry in os.scandir(image_dir):
+                if entry.is_dir():
+                    if folder_filter and entry.name != folder_filter:
+                        continue
+                    items, total = get_files(entry.path)
+                    result["folders"][entry.name] = {"items": items, "total": total}
 
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(categorized_images).encode())
+        self.wfile.write(json.dumps(result).encode())
+
+    def move_image(self):
+        query = urlparse(self.path).query
+        params = parse_qs(query)
+        src = params.get("src", [""])[0]  # e.g. "subfolder/file.png" or "file.png"
+        dest = params.get("dest", [""])[0]  # e.g. "otherfolder" or "root"
+
+        if not src:
+            self.respond(400, {"error": "Missing src"})
+            return
+
+        image_dir = "saved_images"
+        src_path = os.path.join(image_dir, src)
+
+        if not os.path.exists(src_path):
+            self.respond(404, {"error": "Source file not found"})
+            return
+
+        filename = os.path.basename(src_path)
+
+        if dest == "root" or dest == "":
+            dest_path = os.path.join(image_dir, filename)
+        else:
+            dest_dir = os.path.join(image_dir, dest)
+            os.makedirs(dest_dir, exist_ok=True)
+            dest_path = os.path.join(dest_dir, filename)
+
+        if os.path.abspath(src_path) == os.path.abspath(dest_path):
+            self.respond(200, {"message": "Already in that folder"})
+            return
+
+        os.rename(src_path, dest_path)
+        self.respond(200, {"message": "Moved successfully", "dest": dest_path})
+
 
 if __name__ == "__main__":
     PORT = 9000
     server_address = ("", PORT)
     httpd = HTTPServer(server_address, CustomHandler)
-
 
     print(f"Serving on http://localhost:{PORT}")
     httpd.serve_forever()
