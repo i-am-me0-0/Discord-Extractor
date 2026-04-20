@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,8 +11,10 @@
             background-color: #23272A;
             color: white;
             text-align: center;
-            display: flex; /* Make body a flex container */
+            display: flex;
+            /* Make body a flex container */
         }
+
         .container {
             display: flex;
             flex-grow: 1;
@@ -22,21 +25,27 @@
             padding: 20px;
             text-align: center;
         }
+
         .gallery {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 10px;
             margin-top: 20px;
-            
+
         }
 
         .gallery img {
-            max-width: 200px; /* Ensures the width does not exceed 200px */
-            max-height: 200px; /* Ensures the height does not exceed 200px */
-            width: auto; /* Maintain aspect ratio */
-            height: auto; /* Maintain aspect ratio */
-            object-fit: contain; /* Prevents distortion while fitting inside the box */
+            max-width: 200px;
+            /* Ensures the width does not exceed 200px */
+            max-height: 200px;
+            /* Ensures the height does not exceed 200px */
+            width: auto;
+            /* Maintain aspect ratio */
+            height: auto;
+            /* Maintain aspect ratio */
+            object-fit: contain;
+            /* Prevents distortion while fitting inside the box */
             border-radius: 8px;
             border: 2px solid #7289DA;
             box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
@@ -44,125 +53,499 @@
         }
 
         .gallery img:hover {
-            transform: scale(1.1);
+            transform: scale(1.5);
         }
 
         custom-sidebar {
             position: fixed;
             top: 0;
             left: 0;
-            height: 100vh; /* Full height */
-            width: 250px; /* Adjust width as needed */
+            height: 100vh;
+            /* Full height */
+            width: 250px;
+            /* Adjust width as needed */
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-            z-index: 1000; /* Ensure it stays above other content */
-            flex-shrink: 0; /* Prevent the sidebar from shrinking */
+            z-index: 1000;
+            /* Ensure it stays above other content */
+            flex-shrink: 0;
+            /* Prevent the sidebar from shrinking */
         }
 
         .container {
-            margin-left: 250px; /* Same as sidebar width to prevent overlap */
+            margin-left: 250px;
+            /* Same as sidebar width to prevent overlap */
         }
 
 
-        .borderbox{
+        .borderbox {
             border-radius: 8px;
 
         }
-        .innerborder{
+
+        .innerborder {
             margin-left: 4%;
             margin-right: 4%;
         }
 
         .borderbox h2 {
-            border-top: 2px solid #7289DA; /* Adds the underline */
+            border-top: 2px solid #7289DA;
+            /* Adds the underline */
         }
+
         /* Exempt h2 with the 'no-underline' class from the underline */
         .borderbox h2.no-underline {
-            border-top: none; /* Removes the underline */
+            border-top: none;
+            /* Removes the underline */
         }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin: 16px 0;
+        }
+
+        .controls input,
+        .controls select,
+        .controls button {
+            background: #2c2f33;
+            color: white;
+            border: 1px solid #7289DA;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .controls input {
+            min-width: 220px;
+        }
+
+        .load-more {
+            margin: 12px auto;
+            display: block;
+            background: #7289DA;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .load-more:hover {
+            background: #5b6eae;
+        }
+
+        .settings-panel {
+            background: #2c2f33;
+            border: 1px solid #7289DA;
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin: 10px auto;
+            max-width: 400px;
+            text-align: left;
+        }
+
+        .settings-panel label {
+            display: block;
+            margin: 6px 0;
+            font-size: 14px;
+        }
+
+        .settings-toggle {
+            background: none;
+            border: 1px solid #7289DA;
+            color: #7289DA;
+            border-radius: 6px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* Folder collapse */
+.folder-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 0 16px;
+    border-top: 2px solid #7289DA;
+}
+.folder-header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.folder-header .arrow {
+    display: inline-block;
+    transition: transform 0.2s;
+    font-style: normal;
+    font-size: 12px;
+    color: #7289DA;
+}
+.folder-header.collapsed .arrow {
+    transform: rotate(-90deg);
+}
+.folder-count {
+    justify-self: end;
+    color: #888;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+/* Drag-to-move */
+.gallery.drag-over {
+    outline: 2px dashed #7289DA;
+    outline-offset: 4px;
+    background: rgba(114, 137, 218, 0.08);
+    border-radius: 8px;
+}
+.gallery > div[draggable="true"] {
+    cursor: grab;
+}
+.gallery > div[draggable="true"]:active {
+    cursor: grabbing;
+    opacity: 0.5;
+}
     </style>
     <script src="./script/sidebar.js" defer></script>
 </head>
+
 <body>
     <div class="container">
         <custom-sidebar></custom-sidebar>
         <div class="content">
             <h1>Saved Images</h1>
 
-         
+
             <div class="borderbox innerborder">
                 <h2 class="no-underline">Root Directory</h2>
                 <div class="gallery" id="rootGallery"></div>
                 <div id="foldersContainer"></div> <!-- Dynamic subfolders will be added here -->
-                
+
             </div>
         </div>
     </div>
     <script>
-        async function loadImages() {
-            try {
-                const response = await fetch('/list-images');
-                const data = await response.json();
+      const state = {
+    search: "",
+    sort: "name_asc",
+    pageSize: parseInt(localStorage.getItem("gallery_pageSize") || "20"),
+    moveMode: localStorage.getItem("gallery_moveMode") === "true",
+    offsets: {},
+    totals: {},
+};
 
-                const rootGallery = document.getElementById("rootGallery");
-                const foldersContainer = document.getElementById("foldersContainer");
-                rootGallery.innerHTML = "";
-                foldersContainer.innerHTML = "";
+let debounceTimer;
 
-        function createImageElement(src, filename) {
-            const container = document.createElement("div");
-            container.style.display = "flex";
-            container.style.flexDirection = "column";
-            container.style.alignItems = "center";
-            container.style.maxWidth = "200px"; // Ensure uniform width
-            container.style.margin = "5px";
+function getSectionKey(folder) {
+    return folder === "root" ? "root" : folder;
+}
 
-            const imgElement = document.createElement("img");
-            imgElement.src = src;
-            imgElement.alt = filename;
-            imgElement.style.maxWidth = "200px";
-            imgElement.style.borderRadius = "8px";
+function createImageElement(src, filename, folder) {
+    const container = document.createElement("div");
+    container.style.cssText = "display:flex;flex-direction:column;align-items:center;max-width:200px;margin:5px;";
 
-            const label = document.createElement("span");
-            label.textContent = filename;
-            label.style.fontSize = "12px";
-            label.style.color = "#BBB"; // Light gray
-            label.style.marginTop = "5px";
-            label.style.wordBreak = "break-word"; // Prevent overflow issues
+    if (state.moveMode) {
+        container.draggable = true;
+        container.dataset.src = folder === "root" ? filename : `${folder}/${filename}`;
+        container.dataset.folder = folder;
+        container.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("text/plain", container.dataset.src);
+            e.dataTransfer.effectAllowed = "move";
+        });
+    }
 
-            container.appendChild(imgElement);
-            container.appendChild(label);
-            return container;
+    const imgElement = document.createElement("img");
+    imgElement.loading = "lazy";
+    imgElement.src = src;
+    imgElement.alt = filename;
+    imgElement.style.maxWidth = "200px";
+    imgElement.style.borderRadius = "8px";
+
+    const label = document.createElement("span");
+    label.style.cssText = "font-size:12px;color:#BBB;margin-top:5px;word-break:break-word;";
+    label.textContent = filename;
+
+    imgElement.onload = function () {
+        if (this.naturalWidth <= 32 && this.naturalHeight <= 32) {
+            label.innerHTML = `<span style="color:#FFA500;">[!]</span> ${filename}`;
+            label.title = `Tiny: ${this.naturalWidth}x${this.naturalHeight}px`;
+        }
+    };
+
+    container.appendChild(imgElement);
+    container.appendChild(label);
+    return container;
+}
+
+function addDropTarget(galleryDiv, folder) {
+    galleryDiv.addEventListener("dragover", (e) => {
+        if (!state.moveMode) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        galleryDiv.classList.add("drag-over");
+    });
+
+    galleryDiv.addEventListener("dragleave", () => {
+        galleryDiv.classList.remove("drag-over");
+    });
+
+    galleryDiv.addEventListener("drop", async (e) => {
+        if (!state.moveMode) return;
+        e.preventDefault();
+        galleryDiv.classList.remove("drag-over");
+
+        const srcRelative = e.dataTransfer.getData("text/plain");
+        const srcFolder = srcRelative.includes("/")
+            ? srcRelative.split("/").slice(0, -1).join("/")
+            : "root";
+
+        if (srcFolder === folder) return;
+
+        const params = new URLSearchParams({ src: srcRelative, dest: folder });
+        const res = await fetch(`/move-image?${params}`);
+        const data = await res.json();
+
+        if (data.error) {
+            alert("Move failed: " + data.error);
+            return;
         }
 
-        // Load root images
-        if (data.root.length === 0) {
-            rootGallery.innerHTML = "<p>No images found in root.</p>";
-        } else {
-            data.root.forEach(image => {
-                rootGallery.appendChild(createImageElement(`/saved_images/${image}`, image));
-            });
+        const srcGallery = srcFolder === "root"
+            ? document.getElementById("rootGallery")
+            : document.getElementById(`gallery-${srcFolder}`);
+        if (srcGallery) await loadSection(srcFolder, srcGallery, true);
+        await loadSection(folder, galleryDiv, true);
+    });
+}
+
+// Auto-batches through all images sequentially, pageSize at a time
+async function loadSection(folder, galleryDiv, reset = false) {
+    const key = getSectionKey(folder);
+
+    if (reset) {
+        galleryDiv.querySelectorAll("div, button, p").forEach(e => e.remove());
+        state.offsets[key] = 0;
+        delete state.totals[key];
+    }
+
+    let offset = state.offsets[key] || 0;
+    let total = Infinity;
+
+    while (offset < total) {
+        const params = new URLSearchParams({
+            search: state.search,
+            sort: state.sort,
+            limit: state.pageSize,
+            offset,
+            folder: folder === "root" ? "root" : folder,
+        });
+
+        const res = await fetch(`/list-images?${params}`);
+        const data = await res.json();
+        const section = folder === "root" ? data.root : data.folders?.[folder];
+        const items = section?.items || [];
+        total = section?.total ?? 0;
+        state.totals[key] = total;
+
+        if (items.length === 0) break;
+
+        items.forEach(img => {
+            const src = folder === "root"
+                ? `/saved_images/${img}`
+                : `/saved_images/${folder}/${img}`;
+            galleryDiv.appendChild(createImageElement(src, img, folder));
+        });
+
+        offset += items.length;
+        state.offsets[key] = offset;
+    }
+
+    if (total === 0) {
+        if (state.moveMode) {
+            galleryDiv.innerHTML = "<p style='color:#666;font-size:13px;'>Empty — drop images here</p>";
+        }
+        // when not in move mode, empty folders are hidden entirely (handled in loadImages)
+    }
+
+    return total;
+}
+
+async function loadImages(reset = false) {
+    const rootGallery = document.getElementById("rootGallery");
+    const foldersContainer = document.getElementById("foldersContainer");
+
+    if (reset) {
+        state.offsets = {};
+        state.totals = {};
+        foldersContainer.innerHTML = "";
+    }
+
+    const rootTotal = await loadSection("root", rootGallery, reset);
+    updateCount("rootCount", rootTotal);
+
+    // Discover folders (limit:0 just to list folder names + totals)
+    const res = await fetch(`/list-images?limit=0&offset=0&search=${encodeURIComponent(state.search)}`);
+    const data = await res.json();
+    const allFolders = Object.keys(data.folders || {})
+        .filter(f => !f.startsWith("."));  // always hide dot-folders
+
+    for (const folder of allFolders) {
+        const folderTotal = data.folders[folder]?.total ?? 0;
+
+        // Hide empty folders unless in move mode
+        if (folderTotal === 0 && !state.moveMode) continue;
+
+        let folderDiv = document.getElementById(`section-${folder}`);
+        if (!folderDiv) {
+            folderDiv = document.createElement("div");
+            folderDiv.id = `section-${folder}`;
+
+            const header = document.createElement("h2");
+            header.className = "folder-header";
+            const collapsed = localStorage.getItem(`collapsed-${folder}`) === "true";
+            if (collapsed) header.classList.add("collapsed");
+
+            // Three-column grid: left empty | center title+arrow | right count
+            header.innerHTML = `
+                <span></span>
+                <span class="folder-header-center">
+                    <span class="arrow">▼</span>
+                    <span>${folder}</span>
+                </span>
+                <span class="folder-count" id="count-${folder}">${folderTotal} files</span>
+            `;
+
+            const galleryDiv = document.createElement("div");
+            galleryDiv.className = "gallery";
+            galleryDiv.id = `gallery-${folder}`;
+            if (collapsed) galleryDiv.style.display = "none";
+
+            header.onclick = () => {
+                const isNowCollapsed = !header.classList.contains("collapsed");
+                header.classList.toggle("collapsed", isNowCollapsed);
+                galleryDiv.style.display = isNowCollapsed ? "none" : "";
+                localStorage.setItem(`collapsed-${folder}`, isNowCollapsed);
+            };
+
+            addDropTarget(galleryDiv, folder);
+            folderDiv.appendChild(header);
+            folderDiv.appendChild(galleryDiv);
+            foldersContainer.appendChild(folderDiv);
         }
 
-        // Load images from subfolders
-        for (const folder in data.folders) {
-            if (data.folders[folder].length > 0) {
-                const folderDiv = document.createElement("div");
-                folderDiv.innerHTML = `<h2>${folder}</h2><div class="gallery" id="gallery-${folder.replace(/\s+/g, '-')}" ></div>`;
-                foldersContainer.appendChild(folderDiv);
-
-                const galleryDiv = folderDiv.querySelector(".gallery");
-                data.folders[folder].forEach(image => {
-                    galleryDiv.appendChild(createImageElement(`/saved_images/${folder}/${image}`, image));
-                });
-            }
-        }
-    } catch (error) {
-        console.error("Error loading images:", error);
+        const galleryDiv = document.getElementById(`gallery-${folder}`);
+        const actualTotal = await loadSection(folder, galleryDiv, reset);
+        updateCount(`count-${folder}`, actualTotal);
     }
 }
 
-window.onload = loadImages;
+function updateCount(id, total) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${total} file${total !== 1 ? "s" : ""}`;
+}
 
+function buildControls() {
+    const controls = document.createElement("div");
+    controls.className = "controls";
+
+    const search = document.createElement("input");
+    search.type = "text";
+    search.placeholder = "🔍 Search by filename...";
+    search.value = state.search;
+    search.oninput = (e) => {
+        state.search = e.target.value;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => loadImages(true), 300);
+    };
+
+    const sort = document.createElement("select");
+    [
+        ["name_asc",  "Name A → Z"],
+        ["name_desc", "Name Z → A"],
+        ["date_desc", "Newest first"],
+        ["date_asc",  "Oldest first"],
+    ].forEach(([val, label]) => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = label;
+        if (val === state.sort) opt.selected = true;
+        sort.appendChild(opt);
+    });
+    sort.onchange = (e) => { state.sort = e.target.value; loadImages(true); };
+
+    const settingsToggle = document.createElement("button");
+    settingsToggle.className = "settings-toggle";
+    settingsToggle.textContent = "⚙ Settings";
+
+    const settingsPanel = document.createElement("div");
+    settingsPanel.className = "settings-panel";
+    settingsPanel.style.display = "none";
+    settingsPanel.innerHTML = `
+        <label>Images per batch:
+            <select id="pageSizeSelect">
+                ${[10, 20, 50, 100].map(n =>
+                    `<option value="${n}" ${n === state.pageSize ? "selected" : ""}>${n}</option>`
+                ).join("")}
+            </select>
+        </label>
+        <label style="margin-top:10px;">
+            <input type="checkbox" id="moveModeCheck" ${state.moveMode ? "checked" : ""}>
+            Enable drag-to-move
+        </label>
+    `;
+
+    settingsToggle.onclick = () => {
+        settingsPanel.style.display = settingsPanel.style.display === "none" ? "block" : "none";
+    };
+
+    settingsPanel.querySelector("#pageSizeSelect").onchange = (e) => {
+        state.pageSize = parseInt(e.target.value);
+        localStorage.setItem("gallery_pageSize", state.pageSize);
+        loadImages(true);
+    };
+
+    settingsPanel.querySelector("#moveModeCheck").onchange = (e) => {
+        state.moveMode = e.target.checked;
+        localStorage.setItem("gallery_moveMode", state.moveMode);
+        loadImages(true); // reload so drag attrs + empty folder visibility update
+    };
+
+    controls.appendChild(search);
+    controls.appendChild(sort);
+    controls.appendChild(settingsToggle);
+
+    const content = document.querySelector(".content");
+    content.insertBefore(settingsPanel, document.querySelector(".borderbox"));
+    content.insertBefore(controls, settingsPanel);
+}
+
+// Root header also needs a count span — add an id to it in the HTML
+function setupRootHeader() {
+    const h2 = document.querySelector("#rootGallery").previousElementSibling;
+    if (h2) {
+        h2.style.cssText = "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 16px;";
+        h2.innerHTML = `
+            <span></span>
+            <span>Root Directory</span>
+            <span class="folder-count" id="rootCount">— files</span>
+        `;
+    }
+}
+
+window.onload = () => {
+    buildControls();
+    setupRootHeader();
+    addDropTarget(document.getElementById("rootGallery"), "root");
+    loadImages();
+};
     </script>
 </body>
+
 </html>
